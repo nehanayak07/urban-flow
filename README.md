@@ -1,210 +1,149 @@
-# 🏙️ Urban Flow Traffic API – Dockerized Smart City Backend
+# Urban Flow Traffic API – Jenkins CI/CD Pipeline
 
-## 👤 Role
-**The Architect (Docker & Orchestration)**  
-**Name:** Ashwani Sharma  
+## Project Overview
+Urban Flow Traffic API is a Python-based REST API that simulates traffic flow data.  
+The main objective of this project is to demonstrate a **Jenkins CI/CD pipeline** that automates building, deploying, and verifying the application.
 
----
-
-## 📌 Project Overview
-
-The **Urban Flow Traffic API** is a backend system designed to support smart city traffic management.  
-It collects traffic data from multiple locations, calculates congestion levels, and exposes RESTful APIs for real-time monitoring and analysis.
-
-Originally, the application suffered from **environment mismatch issues**, where it worked on one system but crashed on another due to dependency and configuration differences.
-
-This project solves that problem by **fully containerizing the application and its dependencies** using Docker and Docker Compose.
+This project focuses on **Continuous Integration and Continuous Deployment (CI/CD)** using **Jenkins**.
 
 ---
 
-## 🎯 Problem Statement
-
-Developers faced frequent crashes due to:
-- Different Python versions
-- Missing libraries
-- Database configuration inconsistencies
-- Host-specific environment dependencies
+## Objective
+- Automate application build and deployment
+- Remove environment mismatch issues
+- Ensure consistent and repeatable deployments
+- Demonstrate Jenkins pipeline implementation
 
 ---
 
-## ✅ Solution Approach
+## Jenkins Role in This Project
+Jenkins acts as the **automation server** that performs the following tasks:
 
-To eliminate these issues:
-- The application is containerized using **Docker**
-- Multiple services are orchestrated using **Docker Compose**
-- Databases and cache run as containers
-- Resource limits are enforced to avoid system overload
-- A single command starts the entire stack
-
----
-
-## 🧱 Technology Stack
-
-| Layer | Technology |
-|-----|-----------|
-| Backend API | FastAPI (Python) |
-| Database | PostgreSQL (Docker Image) |
-| Cache | Redis (Docker Image) |
-| ORM | SQLAlchemy |
-| API Server | Uvicorn |
-| Containerization | Docker |
-| Orchestration | Docker Compose |
+1. Pulls the source code from GitHub
+2. Builds the Docker image for the API
+3. Deploys the application using Docker Compose
+4. Verifies the running containers
+5. Reports pipeline status
 
 ---
 
-## 🗂️ Project Structure
+## Project Structure
 ```bash
 urban-flow-api/
 │
-├── app/
-│ ├── main.py # FastAPI entry point
-│ ├── database.py # Database configuration
-│ ├── models.py # SQLAlchemy models
-│ ├── schemas.py # Pydantic schemas
-│ ├── crud.py # Business logic
-│ └── routes/
-│ └── traffic.py # API routes
-│
-├── Dockerfile # Multi-stage Docker build
-├── docker-compose.yml # Service orchestration
-├── requirements.txt # Python dependencies
-├── .env # Environment variables
-└── README.md # Documentation
-
+├── Jenkinsfile # Jenkins pipeline definition
+├── Dockerfile # Application containerization
+├── docker-compose.yml # Multi-container setup
+├── app/ # Application source code
+└── README.md # Project documentation
 ```
----
-
-## 🐳 Dockerfile Design (Multi-Stage Build)
-
-### Key Features
-- Uses `python:3.11-slim` for smaller image size
-- Multi-stage build to separate build and runtime layers
-- Non-root user execution for security
-- Optimized image size (under 200MB)
-
-### Benefits
-- Faster builds
-- Reduced attack surface
-- Production-grade container image
 
 ---
 
-## 🧱 Docker Compose Architecture
+## Jenkins Pipeline Workflow
 
-The application consists of **three containerized services**:
+- GitHub → Jenkins → Docker Build → Docker Compose → Verification
 
-### 1️⃣ API Service
-- Runs the FastAPI application
-- Exposed on port `8000`
-- Connects to PostgreSQL and Redis using internal Docker networking
-
-### 2️⃣ PostgreSQL Service
-- Uses official `postgres:15-alpine` image
-- Runs entirely inside Docker
-- Uses Docker volume for persistent data storage
-- No PostgreSQL installation required on host machine
-
-### 3️⃣ Redis Service
-- Uses official `redis:7-alpine` image
-- Acts as a caching layer (future-ready)
-- Improves scalability and performance
+Each code change triggers the Jenkins pipeline to ensure automated deployment.
 
 ---
 
-## ⚙️ Resource Limits (Noisy Neighbor Prevention)
+## Jenkinsfile (Pipeline Configuration)
 
-To prevent any container from exhausting host resources, CPU and memory limits are configured.
+The CI/CD pipeline is defined using a **Declarative Jenkinsfile**.
 
-| Service | CPU Limit | Memory Limit |
-|------|-----------|-------------|
-| API | 0.50 CPU | 512 MB |
-| PostgreSQL | 0.50 CPU | 512 MB |
-| Redis | 0.25 CPU | 256 MB |
+### Pipeline Stages
 
-### Why This Matters
-- Ensures host stability
-- Prevents container crashes
-- Enables fair resource allocation
-- Mimics real production environments
+| Stage Name | Description |
+|----------|------------|
+| Checkout Code | Pulls the latest code from GitHub |
+| Build Docker Image | Builds the API Docker image |
+| Run Application | Starts API, database, and Redis containers |
+| Verify Application | Confirms all containers are running |
 
 ---
 
-## 🚀 How to Build and Run the Application
+## Jenkinsfile Example
 
-### 🔧 Prerequisites
-- Docker Desktop
-- Docker Compose
-- Linux containers enabled in Docker Desktop
+```groovy
+pipeline {
+    agent any
 
----
+    stages {
 
-### ▶️ Start the Entire Stack (One Command)
+        stage('Checkout Code') {
+            steps {
+                git 'https://github.com/your-username/urban-flow-api.git'
+            }
+        }
 
-```bash
-docker-compose up --build
-```
-# This command:
+        stage('Build Docker Image') {
+            steps {
+                sh 'docker build -t urban-flow-api-api .'
+            }
+        }
 
-- Builds the API Docker image
+        stage('Deploy Application') {
+            steps {
+                sh 'docker-compose up -d'
+            }
+        }
 
-- Pulls PostgreSQL and Redis images
+        stage('Verify Deployment') {
+            steps {
+                sh 'docker ps'
+            }
+        }
+    }
 
-- Creates Docker network and volumes
-
-- Starts all services in correct order
-
-# 🌐 Application Access
-```bash
-| Feature          | URL                                                                      |
-| ---------------- | ------------------------------------------------------------------------ |
-| API Health Check | [http://localhost:8000/](http://localhost:8000/)                         |
-| Swagger UI       | [http://localhost:8000/docs](http://localhost:8000/docs)                 |
-| OpenAPI JSON     | [http://localhost:8000/openapi.json](http://localhost:8000/openapi.json) |
-```
-# 🧪 Sample API Usage
-- Create Traffic Record
-
-Endpoint: POST /traffic
-```bash
-{
-  "location": "Ring Road Jaipur",
-  "vehicle_count": 85,
-  "avg_speed": 32.5
+    post {
+        always {
+            echo 'Pipeline execution completed'
+        }
+    }
 }
 ```
+# Jenkins Job Configuration (UI Steps)
 
-- Response
+- Open Jenkins Dashboard
+
+- Click New Item
+
+- Enter job name → urban-flow-pipeline
+
+- Select Pipeline
+
+- Under Pipeline Configuration:
+
+- Definition: Pipeline script from SCM
+
+- SCM: Git
+
+- Repository URL: GitHub repository URL
+
+- Script Path: Jenkinsfile
+
+- Save and click Build Now
+
+# Pipeline Output
+
+- Docker image is built successfully
+
+- Containers are launched automatically
+
+- Application runs on port 8000
+
+- Jenkins console shows deployment status
+
+# Application Access
+
+- Once the pipeline succeeds:
+```bash
+http://localhost:8000
+```
+- Response:
 ```bash
 {
-  "message": "Traffic data added successfully",
-  "congestion_level": "Medium"
+  "status": "Urban Flow API is running 🚦"
 }
 ```
-# 🧠 Data Persistence
-
-- PostgreSQL data is stored in a Docker-managed volume
-
-- Data persists across container restarts
-
-- Containers can be destroyed and recreated safely
-
-# 🛑 Stop the Application
-```bash
-docker-compose down
-```
-# Stop and Remove Volumes (Optional)
-```bash
-docker-compose down -v
-```
-
-# 🧪 Validation Steps
-
-- Start containers using Docker Compose
-
-- Verify logs show services running
-
-- Access Swagger UI
-
-- Insert traffic data using POST endpoint
-
-- Confirm data persistence in PostgreSQL container
