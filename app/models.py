@@ -1,0 +1,14 @@
+from sqlalchemy import Column, Integer, String, Float, DateTime
+from datetime import datetime
+from .database import Base
+
+class TrafficData(Base):
+    __tablename__ = "traffic_data"
+    __table_args__ = {"mysql_engine": "InnoDB"}
+
+    id = Column(Integer, primary_key=True, index=True)
+    location = Column(String(100), nullable=False, index=True)
+    vehicle_count = Column(Integer, nullable=False)
+    avg_speed = Column(Float, nullable=False)
+    congestion_level = Column(String(20), nullable=False)
+    timestamp = Column(DateTime, default=datetime.utcnow)
